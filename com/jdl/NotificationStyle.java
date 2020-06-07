@@ -151,17 +151,11 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
             builder.setStyle(new Notification.BigTextStyle().bigText(subtitle));
         builder.setAutoCancel(true);
         builder.setDefaults(Notification.DEFAULT_ALL);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)builder.setPriority(SetPriority(priorityNotification, false));
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            builder.setPriority(SetPriority(priorityNotification, false));
         builder.setColor(colorNoti);
 
-        int requestID = (int) System.currentTimeMillis();
-        Intent myIntent = new Intent();
-        String myApp = context.getPackageName();
-        myIntent.setClassName(myApp, myApp + ".Screen1");
-        myIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        myIntent.putExtra("APP_INVENTOR_START", startValue);
-        PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(launchIntent);
+        StartApp(startValue);
 
         BroadcastReceiver actionBroad = new BroadcastReceiver() {
             @Override
@@ -221,18 +215,12 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
         builder.setShowWhen(false);
         builder.setContentTitle(title);
         builder.setContentText(subtitle);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)builder.setPriority(Notification.PRIORITY_DEFAULT);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            builder.setPriority(Notification.PRIORITY_DEFAULT);
         builder.setAutoCancel(pause ? true : false);
         builder.setOngoing(pause ? false : true);
 
-        int requestID = (int) System.currentTimeMillis();
-        Intent myIntent = new Intent();
-        String myApp = context.getPackageName();
-        myIntent.setClassName(myApp, myApp + ".Screen1");
-        myIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        myIntent.putExtra("APP_INVENTOR_START", "Music");
-        PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(launchIntent);
+        StartApp("Music");
 
         Bitmap largeIconBitmap = getBitmap(largeIcon, false);
         if (largeIconBitmap != null)
@@ -281,14 +269,8 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
 
     private void notificationMessage(String group, String message, String sender, long timestamp) {
         initChannelNotification(NotificationManager.IMPORTANCE_HIGH, "NotifMesseg");
-        int requestID = (int) System.currentTimeMillis();
-        Intent myIntent = new Intent();
-        String myApp = context.getPackageName();
-        myIntent.setClassName(myApp, myApp + ".Screen1");
-        myIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        myIntent.putExtra("APP_INVENTOR_START", "Message");
-        PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(launchIntent);
+
+        StartApp("Message");
 
         RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply").setLabel("Your answer...").build();
         Intent replyIntent;
@@ -318,7 +300,8 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
         builder.setStyle(messagingStyle);
         builder.addAction(replyAction);
         builder.setColor(colorNoti);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)builder.setPriority(Notification.PRIORITY_HIGH);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            builder.setPriority(Notification.PRIORITY_HIGH);
         builder.setCategory(Notification.CATEGORY_MESSAGE);
         builder.setAutoCancel(true);
         builder.setOnlyAlertOnce(true);
@@ -353,6 +336,21 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
             return bitmap;
         }
 
+    }
+
+    private void StartApp(String startValue) {
+        int requestID = (int) System.currentTimeMillis();
+        Intent myIntent = new Intent();
+        String myApp = context.getPackageName();
+        String classNameActivity = activity.getLocalClassName();
+        String classNameApp = activity.getClass().getSimpleName();
+        myIntent.setClassName(myApp,
+                classNameActivity.equals(classNameApp) ? myApp + "." + classNameApp : classNameActivity);
+        myIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        myIntent.putExtra("APP_INVENTOR_START", startValue);
+        PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(launchIntent);
     }
 
     private void initChannelNotification(int importance, String id) {
