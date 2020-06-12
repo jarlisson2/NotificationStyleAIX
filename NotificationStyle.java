@@ -23,6 +23,7 @@ import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.Component;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
+import com.google.appinventor.components.runtime.OnDestroyListener;
 import com.google.appinventor.components.runtime.util.YailList;
 
 import android.app.Activity;
@@ -49,7 +50,7 @@ import android.os.StrictMode;
 @SimpleObject(external = true)
 @UsesAssets(fileNames = "favorite_border.png,favorite.png,next.png,pause.png,play.png,previous.png,reply.png")
 
-public class NotificationStyle extends AndroidNonvisibleComponent {
+public class NotificationStyle extends AndroidNonvisibleComponent implements OnDestroyListener {
     public Activity activity;
     public Context context;
     public ComponentContainer container;
@@ -133,6 +134,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
         activity.registerReceiver(receiver, new IntentFilter("MUSIC_PREVIOUS"));
         activity.registerReceiver(receiver, new IntentFilter("MUSIC_NEXT"));
         activity.registerReceiver(messageBroad, new IntentFilter("MESSAGE_REPLY"));
+        form.registerForOnDestroy(this);
 
     }
 
@@ -546,6 +548,11 @@ public class NotificationStyle extends AndroidNonvisibleComponent {
     @SimpleEvent(description = "Return of the message typed in the notification.")
     public void CallbackMessage(String message, long timestamp) {
         EventDispatcher.dispatchEvent(this, "CallbackMessage", message, timestamp);
+    }
+    
+    @Override
+    public void onDestroy() {
+        cancelNotification(33333);
     }
 
 }
