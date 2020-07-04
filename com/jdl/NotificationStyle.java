@@ -43,12 +43,11 @@ import android.media.session.MediaSession;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StrictMode;
 
 @DesignerComponent(version = 1, description = "Notification Style <br> Developed by Jarlisson", category = ComponentCategory.EXTENSION, nonVisible = true, iconName = "aiwebres/notification.png", helpUrl = "https://github.com/jarlisson2/NotificationStyleAIX")
+@UsesAssets(fileNames = "favorite_border.png,favorite.png,next.png,pause.png,play.png,previous.png,reply.png")
 @SuppressWarnings("deprecation")
 @SimpleObject(external = true)
-@UsesAssets(fileNames = "favorite_border.png,favorite.png,next.png,pause.png,play.png,previous.png,reply.png")
 
 public class NotificationStyle extends AndroidNonvisibleComponent implements OnDestroyListener {
     public Activity activity;
@@ -56,7 +55,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     public ComponentContainer container;
     public NotificationManager notifManager;
     public Notification.Builder builder;
-    private MediaSession mediaSession;
+    private final MediaSession mediaSession;
     private String channel = "ChannelA";
     private int importanceChannel = 2;
     private int priorityNotification = 2;
@@ -79,7 +78,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
-        public synchronized void onReceive(Context arg0, Intent arg1) {
+        public synchronized void onReceive(final Context arg0, final Intent arg1) {
             if (arg1.getAction().equals("MUSIC_PLAY"))
                 CallbackMusicPlayer("Play");
             else if (arg1.getAction().equals("MUSIC_PAUSE"))
@@ -99,13 +98,13 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     BroadcastReceiver messageBroad = new BroadcastReceiver() {
         @Override
-        public synchronized void onReceive(Context arg0, Intent arg1) {
-            Bundle remoteInput = RemoteInput.getResultsFromIntent(arg1);
+        public synchronized void onReceive(final Context arg0, final Intent arg1) {
+            final Bundle remoteInput = RemoteInput.getResultsFromIntent(arg1);
             if (remoteInput != null) {
-                CharSequence replyText = remoteInput.getCharSequence("key_text_reply");
+                final CharSequence replyText = remoteInput.getCharSequence("key_text_reply");
 
-                long timestampR = System.currentTimeMillis();
-                Message answer = new Message(replyText, null, timestampR);
+                final long timestampR = System.currentTimeMillis();
+                final Message answer = new Message(replyText, null, timestampR);
                 MESSAGES.add(answer);
                 CallbackMessage(replyText.toString(), timestampR);
                 group = arg1.getStringExtra("group");
@@ -117,7 +116,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         }
     };
 
-    public NotificationStyle(ComponentContainer container) {
+    public NotificationStyle(final ComponentContainer container) {
         super(container.$form());
         this.container = container;
         context = (Context) container.$context();
@@ -138,11 +137,12 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     }
 
-    private void sendNotification(String title, String subtitle, boolean bigtext, String bigPicture, String largeIcon,
-            String[] listButtons, String startValue, int NOTIFY_ID) {
+    private void sendNotification(final String title, final String subtitle, final boolean bigtext,
+            final String bigPicture, final String largeIcon, final String[] listButtons, final String startValue,
+            final int NOTIFY_ID) {
         initChannelNotification(SetPriority(importanceChannel, true), "Notif");
 
-        Bitmap icon = getBitmap(iconNotification, false);
+        final Bitmap icon = getBitmap(iconNotification, false);
         if (icon != null)
             builder.setSmallIcon(Icon.createWithBitmap(icon));
         else
@@ -159,17 +159,17 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
         StartApp(startValue);
 
-        BroadcastReceiver actionBroad = new BroadcastReceiver() {
+        final BroadcastReceiver actionBroad = new BroadcastReceiver() {
             @Override
-            public synchronized void onReceive(Context arg0, Intent arg1) {
-                int notificationId = arg1.getIntExtra("notificationId", 0);
+            public synchronized void onReceive(final Context arg0, final Intent arg1) {
+                final int notificationId = arg1.getIntExtra("notificationId", 0);
                 if (notificationId > 0) {
-                    String nameAction = arg1.getAction();
-                    String url = arg1.getStringExtra("url");
+                    final String nameAction = arg1.getAction();
+                    final String url = arg1.getStringExtra("url");
                     if (notifManager != null)
                         notifManager.cancel(notificationId);
                     if (url.contains("://")) {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                         container.$context().startActivity(intent);
                     }
                     CallbackButtonAction(nameAction);
@@ -178,7 +178,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
             }
         };
 
-        for (String button : listButtons) {
+        for (final String button : listButtons) {
             String nameButton;
             String url = "";
             if (button.contains("|")) {
@@ -186,30 +186,38 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
                 url = button.substring(button.indexOf("|") + 1);
             } else
                 nameButton = button;
-            Intent buttonIntent = new Intent(nameButton);
+            final Intent buttonIntent = new Intent(nameButton);
             buttonIntent.putExtra("notificationId", NOTIFY_ID);
             buttonIntent.putExtra("url", url);
-            PendingIntent btnAction = PendingIntent.getBroadcast(activity, 0, buttonIntent,
+            final PendingIntent btnAction = PendingIntent.getBroadcast(activity, 0, buttonIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT);
             builder.addAction(0, nameButton, btnAction);
             activity.registerReceiver(actionBroad, new IntentFilter(nameButton));
         }
-        Bitmap largeIconBitmap = getBitmap(largeIcon, false);
-        if (largeIconBitmap != null)
-            builder.setLargeIcon(largeIconBitmap);
-        Bitmap bigPictureBitmap = getBitmap(bigPicture, false);
-        if (bigPictureBitmap != null)
-            builder.setStyle(new Notification.BigPictureStyle().bigPicture(bigPictureBitmap));
 
-        Notification notification = builder.build();
-        notifManager.notify(NOTIFY_ID, notification);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final Bitmap largeIconBitmap = getBitmap(largeIcon, false);
+                if (largeIconBitmap != null)
+                    builder.setLargeIcon(largeIconBitmap);
+                final Bitmap bigPictureBitmap = getBitmap(bigPicture, false);
+                if (bigPictureBitmap != null)
+                    builder.setStyle(new Notification.BigPictureStyle().bigPicture(bigPictureBitmap));
+
+                final Notification notification = builder.build();
+                notifManager.notify(NOTIFY_ID, notification);
+
+            }
+        }).start();
 
     }
 
-    private void musicNotification(String title, String subtitle, String largeIcon, boolean pause, boolean favoriteB) {
+    private void musicNotification(final String title, final String subtitle, final String largeIcon,
+            final boolean pause, final boolean favoriteB) {
         initChannelNotification(NotificationManager.IMPORTANCE_LOW, "NotifMusic");
 
-        Bitmap icon = getBitmap(iconNotification, false);
+        final Bitmap icon = getBitmap(iconNotification, false);
         if (icon != null)
             builder.setSmallIcon(Icon.createWithBitmap(icon));
         else
@@ -224,36 +232,32 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
         StartApp("Music");
 
-        Bitmap largeIconBitmap = getBitmap(largeIcon, false);
-        if (largeIconBitmap != null)
-            builder.setLargeIcon(largeIconBitmap);
-
-        PendingIntent FAVORITE = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_FAVORITE"),
+        final PendingIntent FAVORITE = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_FAVORITE"),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent PAUSE = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PAUSE"),
+        final PendingIntent PAUSE = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PAUSE"),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent PLAY = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PLAY"),
+        final PendingIntent PLAY = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PLAY"),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent MUSIC_PREVIOUS = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PREVIOUS"),
+        final PendingIntent MUSIC_PREVIOUS = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_PREVIOUS"),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent MUSIC_NEXT = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_NEXT"),
+        final PendingIntent MUSIC_NEXT = PendingIntent.getBroadcast(activity, 0, new Intent("MUSIC_NEXT"),
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         builder.setStyle(new Notification.MediaStyle().setShowActionsInCompactView(1, 2, 3)
                 .setMediaSession(mediaSession.getSessionToken()));
 
-        Bitmap bitmapFavorite = getBitmap(favoriteB ? "favorite.png" : "favorite_border.png", true);
-        Bitmap bitmapPrevious = getBitmap("previous.png", true);
-        Bitmap bitmapPause = getBitmap(pause ? "play.png" : "pause.png", true);
-        Bitmap bitmapNext = getBitmap("next.png", true);
+        final Bitmap bitmapFavorite = getBitmap(favoriteB ? "favorite.png" : "favorite_border.png", true);
+        final Bitmap bitmapPrevious = getBitmap("previous.png", true);
+        final Bitmap bitmapPause = getBitmap(pause ? "play.png" : "pause.png", true);
+        final Bitmap bitmapNext = getBitmap("next.png", true);
 
-        Notification.Action favorite = new Notification.Action.Builder(Icon.createWithBitmap(bitmapFavorite),
+        final Notification.Action favorite = new Notification.Action.Builder(Icon.createWithBitmap(bitmapFavorite),
                 "Favorite", FAVORITE).build();
-        Notification.Action previous = new Notification.Action.Builder(Icon.createWithBitmap(bitmapPrevious),
+        final Notification.Action previous = new Notification.Action.Builder(Icon.createWithBitmap(bitmapPrevious),
                 "Previous", MUSIC_PREVIOUS).build();
-        Notification.Action play = new Notification.Action.Builder(Icon.createWithBitmap(bitmapPause), "Pause",
+        final Notification.Action play = new Notification.Action.Builder(Icon.createWithBitmap(bitmapPause), "Pause",
                 pause ? PLAY : PAUSE).build();
-        Notification.Action next = new Notification.Action.Builder(Icon.createWithBitmap(bitmapNext), "Next",
+        final Notification.Action next = new Notification.Action.Builder(Icon.createWithBitmap(bitmapNext), "Next",
                 MUSIC_NEXT).build();
 
         builder.addAction(favorite);
@@ -264,17 +268,26 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         builder.setSubText(subtitle);
         builder.setDefaults(Notification.DEFAULT_ALL);
 
-        Notification notification = builder.build();
-        notifManager.notify(33333, notification);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final Bitmap largeIconBitmap = getBitmap(largeIcon, false);
+                if (largeIconBitmap != null)
+                    builder.setLargeIcon(largeIconBitmap);
+                final Notification notification = builder.build();
+                notifManager.notify(33333, notification);
+            }
+        }).start();
 
     }
 
-    private void notificationMessage(String group, String message, String sender, long timestamp) {
+    private void notificationMessage(final String group, final String message, final String sender,
+            final long timestamp) {
         initChannelNotification(NotificationManager.IMPORTANCE_HIGH, "NotifMesseg");
 
         StartApp("Message");
 
-        RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply").setLabel("Your answer...").build();
+        final RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply").setLabel("Your answer...").build();
         Intent replyIntent;
         PendingIntent replyPendingIntent = null;
 
@@ -282,18 +295,18 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         replyIntent.putExtra("group", group);
         replyPendingIntent = PendingIntent.getBroadcast(context, 0, replyIntent, 0);
 
-        Bitmap bitmapReply = getBitmap("reply.png", true);
-        Notification.Action replyAction = new Notification.Action.Builder(Icon.createWithBitmap(bitmapReply), "Reply",
-                replyPendingIntent).addRemoteInput(remoteInput).build();
-        Notification.MessagingStyle messagingStyle = new Notification.MessagingStyle("Me");
+        final Bitmap bitmapReply = getBitmap("reply.png", true);
+        final Notification.Action replyAction = new Notification.Action.Builder(Icon.createWithBitmap(bitmapReply),
+                "Reply", replyPendingIntent).addRemoteInput(remoteInput).build();
+        final Notification.MessagingStyle messagingStyle = new Notification.MessagingStyle("Me");
         messagingStyle.setConversationTitle(group);
 
-        for (Message chatMessage : MESSAGES) {
-            Notification.MessagingStyle.Message notificationMessage = new Notification.MessagingStyle.Message(
+        for (final Message chatMessage : MESSAGES) {
+            final Notification.MessagingStyle.Message notificationMessage = new Notification.MessagingStyle.Message(
                     chatMessage.getText(), chatMessage.getTimestamp(), chatMessage.getSender());
             messagingStyle.addMessage(notificationMessage);
         }
-        Bitmap icon = getBitmap(iconNotification, false);
+        final Bitmap icon = getBitmap(iconNotification, false);
         if (icon != null)
             builder.setSmallIcon(Icon.createWithBitmap(icon));
         else
@@ -308,22 +321,20 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         builder.setAutoCancel(true);
         builder.setOnlyAlertOnce(true);
 
-        Notification notification = builder.build();
+        final Notification notification = builder.build();
         notifManager.notify(44444, notification);
     }
 
-    private Bitmap getBitmap(String nameImage, Boolean external) {
+    private Bitmap getBitmap(final String nameImage, final Boolean external) {
         Bitmap bitmap = null;
         try {
             if (external) {
-                InputStream in = form.openAssetForExtension(NotificationStyle.this, nameImage);
+                final InputStream in = form.openAssetForExtension(NotificationStyle.this, nameImage);
                 bitmap = BitmapFactory.decodeStream(in);
             } else if (nameImage != "") {
                 InputStream in = null;
                 if (nameImage.contains("://")) {
-                    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-                    StrictMode.setThreadPolicy(policy);
-                    URL url = new URL(nameImage);
+                    final URL url = new URL(nameImage);
                     bitmap = BitmapFactory.decodeStream((InputStream) url.getContent());
                 } else {
                     in = nameImage.contains("/")
@@ -333,29 +344,29 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
                 }
             }
             return bitmap;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
             return bitmap;
         }
 
     }
 
-    private void StartApp(String startValue) {
-        int requestID = (int) System.currentTimeMillis();
-        Intent myIntent = new Intent();
-        String myApp = context.getPackageName();
-        String classNameActivity = activity.getLocalClassName();
-        String classNameApp = activity.getClass().getSimpleName();
+    private void StartApp(final String startValue) {
+        final int requestID = (int) System.currentTimeMillis();
+        final Intent myIntent = new Intent();
+        final String myApp = context.getPackageName();
+        final String classNameActivity = activity.getLocalClassName();
+        final String classNameApp = activity.getClass().getSimpleName();
         myIntent.setClassName(myApp,
                 classNameActivity.equals(classNameApp) ? myApp + "." + classNameApp : classNameActivity);
         myIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         myIntent.putExtra("APP_INVENTOR_START", startValue);
-        PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent,
+        final PendingIntent launchIntent = PendingIntent.getActivity(context, requestID, myIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(launchIntent);
     }
 
-    private void initChannelNotification(int importance, String id) {
+    private void initChannelNotification(final int importance, final String id) {
         if (notifManager == null)
             notifManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -371,63 +382,70 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
             builder = new Notification.Builder(context);
     }
 
-    private int SetPriority(int p, boolean channelBoolean) {
-        int priority = channelBoolean ? Notification.PRIORITY_DEFAULT : NotificationManager.IMPORTANCE_DEFAULT;
-
+    private int SetPriority(final int p, final boolean channelBoolean) {
+        int priority;
         switch (p) {
             case 0:
                 priority = channelBoolean ? NotificationManager.IMPORTANCE_MIN : Notification.PRIORITY_MIN;
+                break;
             case 1:
                 priority = channelBoolean ? NotificationManager.IMPORTANCE_LOW : Notification.PRIORITY_LOW;
+                break;
             case 2:
                 priority = channelBoolean ? NotificationManager.IMPORTANCE_DEFAULT : Notification.PRIORITY_DEFAULT;
+                break;
             case 3:
                 priority = channelBoolean ? NotificationManager.IMPORTANCE_HIGH : Notification.PRIORITY_HIGH;
+                break;
             case 4:
                 priority = channelBoolean ? NotificationManager.IMPORTANCE_MAX : Notification.PRIORITY_MAX;
+                break;
+            default:
+                priority = channelBoolean ? Notification.PRIORITY_DEFAULT : NotificationManager.IMPORTANCE_DEFAULT;
+                break;
         }
         return priority;
     }
 
-    private void cancelNotification(int id) {
-        NotificationManager nMgr = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+    private void cancelNotification(final int id) {
+        final NotificationManager nMgr = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
         nMgr.cancel(id);
     }
 
     private void cancelAllNotification() {
-        NotificationManager nMgr = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+        final NotificationManager nMgr = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
         nMgr.cancelAll();
     }
 
     @SimpleProperty(category = PropertyCategory.BEHAVIOR, description = "Set Icon notification.")
     @DesignerProperty(editorType = PropertyTypeConstants.PROPERTY_TYPE_ASSET, defaultValue = iconNotificationDefault)
-    public void IconNotification(String path) {
+    public void IconNotification(final String path) {
         iconNotification = path;
     }
 
     @SimpleProperty(category = PropertyCategory.BEHAVIOR, description = "Starting in Android 8.0 (API level 26), all notifications must be assigned to a channel.")
     @DesignerProperty(editorType = PropertyTypeConstants.PROPERTY_TYPE_STRING, defaultValue = channelDefault)
-    public void Channel(String channel) {
+    public void Channel(final String channel) {
         this.channel = channel;
     }
 
     @SimpleProperty(category = PropertyCategory.BEHAVIOR, description = "Set priority channel.")
     @DesignerProperty(editorType = PropertyTypeConstants.PROPERTY_TYPE_INTEGER, defaultValue = importanceChannelDefault
             + "")
-    public void ImportanceChannel(int importanceChannel) {
+    public void ImportanceChannel(final int importanceChannel) {
         this.importanceChannel = importanceChannel;
     }
 
     @SimpleProperty(category = PropertyCategory.BEHAVIOR, description = "Set priority notification.")
     @DesignerProperty(editorType = PropertyTypeConstants.PROPERTY_TYPE_INTEGER, defaultValue = priorityNotificationDefault
             + "")
-    public void PriorityNotification(int priorityNotification) {
+    public void PriorityNotification(final int priorityNotification) {
         this.priorityNotification = priorityNotification;
     }
 
     @SimpleProperty(category = PropertyCategory.BEHAVIOR, description = "Set priority notification.")
     @DesignerProperty(editorType = "color", defaultValue = Component.DEFAULT_VALUE_COLOR_BLACK)
-    public void ColorNotification(int argb) {
+    public void ColorNotification(final int argb) {
         this.colorNoti = argb;
     }
 
@@ -457,35 +475,38 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     }
 
     @SimpleFunction(description = "Creates a simple notification with title and subtitle, capable of displaying large texts in the subtitle.")
-    public void SimpleNotification(String title, String subtitle, boolean bigText, String startValue, int id) {
+    public void SimpleNotification(final String title, final String subtitle, final boolean bigText,
+            final String startValue, final int id) {
         sendNotification(title, subtitle, bigText, "", "", new String[] {}, startValue, id);
     }
 
     @SimpleFunction(description = "Displays a large icon in the notification with title and subtitle.")
-    public void LargeIconNotification(String title, String subtitle, boolean bigText, String largeIcon,
-            String startValue, int id) {
+    public void LargeIconNotification(final String title, final String subtitle, final boolean bigText,
+            final String largeIcon, final String startValue, final int id) {
         sendNotification(title, subtitle, bigText, "", largeIcon, new String[] {}, startValue, id);
     }
 
     @SimpleFunction(description = "Creates a notification with a big picture and in addition it is possible to add title, subtitle and large icon.")
-    public void BigPictureNotification(String title, String subtitle, String bigPicture, String largeIcon,
-            String startValue, int id) {
+    public void BigPictureNotification(final String title, final String subtitle, final String bigPicture,
+            final String largeIcon, final String startValue, final int id) {
         sendNotification(title, subtitle, false, bigPicture, largeIcon, new String[] {}, startValue, id);
     }
 
     @SimpleFunction(description = "Cancels a specific message.")
-    public void CancelNotification(int id) {
+    public void CancelNotification(final int id) {
         cancelNotification(id);
     }
 
     @SimpleFunction(description = "With this block it is possible to create up to three action buttons in the notification and in addition, it is possible to add as a \"hyperlink\".")
-    public void ActionNotification(String title, String subtitle, boolean bigText, String bigPicture, String largeIcon,
-            YailList listButtons, String startValue, int id) {
+    public void ActionNotification(final String title, final String subtitle, final boolean bigText,
+            final String bigPicture, final String largeIcon, final YailList listButtons, final String startValue,
+            final int id) {
         sendNotification(title, subtitle, bigText, bigPicture, largeIcon, listButtons.toStringArray(), startValue, id);
     }
 
     @SimpleFunction(description = "Starts the MediaStyle notification variables.")
-    public void SetupMusicNotification(String title, String subtitle, String largeIcon, boolean favorite) {
+    public void SetupMusicNotification(final String title, final String subtitle, final String largeIcon,
+            final boolean favorite) {
         this.title = title;
         this.subtitle = subtitle;
         this.largeIcon = largeIcon;
@@ -505,7 +526,8 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     }
 
     @SimpleFunction(description = "Through this block, you can show a notification of a received message with the ability to reply in the bar itself.")
-    public void ReceiverMessageNotification(String group, String message, String sender, long timestamp) {
+    public void ReceiverMessageNotification(final String group, final String message, final String sender,
+            final long timestamp) {
         MESSAGES.add(new Message(message, sender == "" ? null : sender, timestamp));
         notificationMessage(group, message, sender, timestamp);
     }
@@ -536,23 +558,24 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     }
 
     @SimpleEvent(description = "When clicking on any action button, the name of the respective button will be returned by that block.")
-    public void CallbackButtonAction(String nameAction) {
+    public void CallbackButtonAction(final String nameAction) {
         EventDispatcher.dispatchEvent(this, "CallbackButtonAction", nameAction);
     }
 
     @SimpleEvent(description = "When clicking on any button of the media style notification, the name of the Action is returned in this block.")
-    public void CallbackMusicPlayer(String nameAction) {
+    public void CallbackMusicPlayer(final String nameAction) {
         EventDispatcher.dispatchEvent(this, "CallbackMusicPlayer", nameAction);
     }
 
     @SimpleEvent(description = "Return of the message typed in the notification.")
-    public void CallbackMessage(String message, long timestamp) {
+    public void CallbackMessage(final String message, final long timestamp) {
         EventDispatcher.dispatchEvent(this, "CallbackMessage", message, timestamp);
     }
-    
+
     @Override
     public void onDestroy() {
-        cancelNotification(33333);
+        if (notifManager == null)
+            notifManager.cancel(33333);
     }
 
 }
