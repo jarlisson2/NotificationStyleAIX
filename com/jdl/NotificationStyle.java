@@ -588,7 +588,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
                 ongoingD);
     }
 
-    @SimpleFunction(description = "Adjust the notification progress bar")
+    @SimpleFunction(description = "Adjust the notification progress bar.")
     public void SetProgress(final String subtitle, final String subtext, final int currentProgress) {
         notificationProgress(titleD, subtitle, subtext, buttonsD, currentProgress, maxProgressD, indeterminate,
                 ongoingD);
@@ -652,7 +652,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         EventDispatcher.dispatchEvent(this, "CallbackMessage", message, timestamp);
     }
 
-    @SimpleEvent(description = "Return of the message typed in the notification.")
+    @SimpleEvent(description = "Returns the name of the action button pressed in the progress notification.")
     public void CallbackButtonProgress(final String nameButton) {
         EventDispatcher.dispatchEvent(this, "CallbackButtonProgress", nameButton);
     }
