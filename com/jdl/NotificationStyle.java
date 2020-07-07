@@ -70,6 +70,12 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     private String message;
     private String sender;
     private long timestamp;
+    private String titleD;
+    private String[] buttonsD;
+    private int maxProgressD;
+    private boolean indeterminate;
+    private boolean ongoingD;
+
     static List<Message> MESSAGES = new ArrayList<>();
     private static final String channelDefault = "ChannelA";
     private static final String iconNotificationDefault = "";
@@ -102,7 +108,6 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
             final Bundle remoteInput = RemoteInput.getResultsFromIntent(arg1);
             if (remoteInput != null) {
                 final CharSequence replyText = remoteInput.getCharSequence("key_text_reply");
-
                 final long timestampR = System.currentTimeMillis();
                 final Message answer = new Message(replyText, null, timestampR);
                 MESSAGES.add(answer);
@@ -112,6 +117,17 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
                 sender = "";
                 timestamp = timestampR;
                 // activity.unregisterReceiver(this);
+            }
+        }
+    };
+
+    BroadcastReceiver progressBroad = new BroadcastReceiver() {
+        @Override
+        public synchronized void onReceive(final Context arg0, final Intent arg1) {
+            if (arg1.getAction().equals("BUTTON1") || arg1.getAction().equals("BUTTON2")) {
+                final String nameButton = arg1.getStringExtra("nameButton");
+                CallbackButtonProgress(nameButton);
+
             }
         }
     };
@@ -133,6 +149,8 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         activity.registerReceiver(receiver, new IntentFilter("MUSIC_PREVIOUS"));
         activity.registerReceiver(receiver, new IntentFilter("MUSIC_NEXT"));
         activity.registerReceiver(messageBroad, new IntentFilter("MESSAGE_REPLY"));
+        activity.registerReceiver(progressBroad, new IntentFilter("BUTTON1"));
+        activity.registerReceiver(progressBroad, new IntentFilter("BUTTON2"));
         form.registerForOnDestroy(this);
 
     }
@@ -323,6 +341,45 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
         final Notification notification = builder.build();
         notifManager.notify(44444, notification);
+    }
+
+    private void notificationProgress(final String title, final String subtitle, final String subtext,
+            final String[] buttons, final int currentProgress, final int maxProgress, final boolean indeterminate,
+            final boolean ongoing) {
+        
+        initChannelNotification(NotificationManager.IMPORTANCE_LOW, "Progress");
+        StartApp("Progress");
+        final Bitmap icon = getBitmap(iconNotification, false);
+        if (icon != null)
+            builder.setSmallIcon(Icon.createWithBitmap(icon));
+        else
+            builder.setSmallIcon(android.R.drawable.stat_sys_download);
+        if (buttons.length > 0) {
+            final Intent buttonIntent = new Intent("BUTTON1");
+            buttonIntent.putExtra("nameButton", buttons[0]);
+            final PendingIntent button1 = PendingIntent.getBroadcast(activity, 0, buttonIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            builder.addAction(0, buttons[0], button1);
+        }
+        if (buttons.length > 1) {
+            final Intent buttonIntent = new Intent("BUTTON2");
+            buttonIntent.putExtra("nameButton", buttons[1]);
+            final PendingIntent button2 = PendingIntent.getBroadcast(activity, 0, buttonIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            builder.addAction(0, buttons[1], button2);
+        }
+        builder.setContentTitle(title);
+        builder.setContentText(subtitle);
+        builder.setSubText(subtext);
+        builder.setColor(colorNoti);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            builder.setPriority(Notification.PRIORITY_DEFAULT);
+        builder.setProgress(maxProgress, currentProgress, indeterminate);
+        builder.setAutoCancel(false);
+        builder.setOngoing(ongoing);
+
+        final Notification notification = builder.build();
+        notifManager.notify(55555, notification);
     }
 
     private Bitmap getBitmap(final String nameImage, final Boolean external) {
@@ -519,6 +576,24 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         musicNotification(title, subtitle, largeIcon, pause, favorite);
     }
 
+    @SimpleFunction(description = "Create a notification with a progress bar.")
+    public void ProgressNotification(final String title, final String subtitle, final String subtext,
+            final YailList buttons, final int currentProgress, final int maxProgress, final boolean indeterminate,
+            final boolean ongoing) {
+        titleD = title;
+        buttonsD = buttons.toStringArray();
+        maxProgressD = maxProgress;
+        ongoingD = ongoing;
+        notificationProgress(titleD, subtitle, subtext, buttonsD, currentProgress, maxProgressD, indeterminate,
+                ongoingD);
+    }
+
+    @SimpleFunction(description = "Adjust the notification progress bar")
+    public void SetProgress(final String subtitle, final String subtext, final int currentProgress) {
+        notificationProgress(titleD, subtitle, subtext, buttonsD, currentProgress, maxProgressD, indeterminate,
+                ongoingD);
+    }
+
     @SimpleFunction(description = "Displays notification of MediaStyle with play button.")
     public void PauseMusicNotification() {
         pause = true;
@@ -547,6 +622,11 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         cancelNotification(33333);
     }
 
+    @SimpleFunction(description = "Cancels the progress notification.")
+    public void CancelProgressNotification() {
+        cancelNotification(55555);
+    }
+
     @SimpleFunction(description = "Cancels all notifications.")
     public void CancelAllNotification() {
         cancelAllNotification();
@@ -570,6 +650,11 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     @SimpleEvent(description = "Return of the message typed in the notification.")
     public void CallbackMessage(final String message, final long timestamp) {
         EventDispatcher.dispatchEvent(this, "CallbackMessage", message, timestamp);
+    }
+
+    @SimpleEvent(description = "Return of the message typed in the notification.")
+    public void CallbackButtonProgress(final String nameButton) {
+        EventDispatcher.dispatchEvent(this, "CallbackButtonProgress", nameButton);
     }
 
     @Override
