@@ -659,7 +659,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     @Override
     public void onDestroy() {
-        if (notifManager == null)
+        if (notifManager != null)
             notifManager.cancel(33333);
     }
 
