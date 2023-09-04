@@ -157,7 +157,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     private void sendNotification(final String title, final String subtitle, final boolean bigtext,
             final String bigPicture, final String largeIcon, final String[] listButtons, final String startValue,
-            final int NOTIFY_ID) {
+            final int NOTIFY_ID, final boolean alertOnce) {
         initChannelNotification(SetPriority(importanceChannel, true), "Notif");
 
         final Bitmap icon = getBitmap(iconNotification, false);
@@ -170,6 +170,7 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
         if (bigtext)
             builder.setStyle(new Notification.BigTextStyle().bigText(subtitle));
         builder.setAutoCancel(true);
+        builder.setOnlyAlertOnce(alertOnce);
         builder.setDefaults(Notification.DEFAULT_ALL);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             builder.setPriority(SetPriority(priorityNotification, false));
@@ -533,20 +534,20 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
 
     @SimpleFunction(description = "Creates a simple notification with title and subtitle, capable of displaying large texts in the subtitle.")
     public void SimpleNotification(final String title, final String subtitle, final boolean bigText,
-            final String startValue, final int id) {
-        sendNotification(title, subtitle, bigText, "", "", new String[] {}, startValue, id);
+            final String startValue, final int id, final boolean alertOnce) {
+        sendNotification(title, subtitle, bigText, "", "", new String[] {}, startValue, id, alertOnce);
     }
 
     @SimpleFunction(description = "Displays a large icon in the notification with title and subtitle.")
     public void LargeIconNotification(final String title, final String subtitle, final boolean bigText,
-            final String largeIcon, final String startValue, final int id) {
-        sendNotification(title, subtitle, bigText, "", largeIcon, new String[] {}, startValue, id);
+            final String largeIcon, final String startValue, final int id, final boolean alertOnce) {
+        sendNotification(title, subtitle, bigText, "", largeIcon, new String[] {}, startValue, id, alertOnce);
     }
 
     @SimpleFunction(description = "Creates a notification with a big picture and in addition it is possible to add title, subtitle and large icon.")
     public void BigPictureNotification(final String title, final String subtitle, final String bigPicture,
-            final String largeIcon, final String startValue, final int id) {
-        sendNotification(title, subtitle, false, bigPicture, largeIcon, new String[] {}, startValue, id);
+            final String largeIcon, final String startValue, final int id, final boolean alertOnce) {
+        sendNotification(title, subtitle, false, bigPicture, largeIcon, new String[] {}, startValue, id, alertOnce);
     }
 
     @SimpleFunction(description = "Cancels a specific message.")
@@ -557,8 +558,8 @@ public class NotificationStyle extends AndroidNonvisibleComponent implements OnD
     @SimpleFunction(description = "With this block it is possible to create up to three action buttons in the notification and in addition, it is possible to add as a \"hyperlink\".")
     public void ActionNotification(final String title, final String subtitle, final boolean bigText,
             final String bigPicture, final String largeIcon, final YailList listButtons, final String startValue,
-            final int id) {
-        sendNotification(title, subtitle, bigText, bigPicture, largeIcon, listButtons.toStringArray(), startValue, id);
+            final int id, final boolean alertOnce) {
+        sendNotification(title, subtitle, bigText, bigPicture, largeIcon, listButtons.toStringArray(), startValue, id, alertOnce);
     }
 
     @SimpleFunction(description = "Starts the MediaStyle notification variables.")
